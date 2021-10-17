@@ -1,0 +1,121 @@
+<?php session_start();
+date_default_timezone_set("Asia/Taipei");
+
+class DB
+{
+  private $dns = "mysql:host=localhost;charset=utf8;dbname=db01-2", $table, $pdo, $root = "root", $pw = '';
+
+  function __construct($table)
+  {
+    $this->table = $table;
+    $this->pdo = new PDO($this->dns, $this->root, $this->pw);
+  }
+
+  function all(...$arg)
+  {
+    $sql = "SELECT * FROM $this->table ";
+    if (isset($arg[0])) {
+      if (is_array($arg[0])) {
+        foreach ($arg[0] as $k => $v) {
+          $tmp[] = sprintf("`%s` = '%s'", $k, $v);
+        }
+        $sql = $sql . " WHERE " . implode(" && ", $tmp);
+      } else {
+        $sql = $sql . $arg[0];
+      }
+    }
+    if (isset($arg[1])) {
+      $sql = $sql . $arg[1];
+    }
+    return $this->pdo->query($sql)->fetchAll();
+  }
+
+  function count(...$arg)
+  {
+    $sql = "SELECT count(*) FROM $this->table ";
+    if (isset($arg[0])) {
+      if (is_array($arg[0])) {
+        foreach ($arg[0] as $k => $v) {
+          $tmp[] = sprintf("`%s` = '%s'", $k, $v);
+        }
+        $sql = $sql . " WHERE " . implode(" && ", $tmp);
+      } else {
+        $sql = $sql . $arg[0];
+      }
+    }
+    if (isset($arg[1])) {
+      $sql = $sql . $arg[1];
+    }
+    return $this->pdo->query($sql)->fetchColumn();
+  }
+
+  function sum($col)
+  {
+    $sql = "SELECT sum(`$col`) FROM $this->table ";
+    return $this->pdo->query($sql)->fetchColumn();
+  }
+
+  function find($id)
+  {
+    $sql = "SELECT * FROM $this->table ";
+    if (is_array($id)) {
+      foreach ($id as $k => $v) {
+        $tmp[] = sprintf("`%s` = '%s'", $k, $v);
+      }
+      $sql = $sql . " WHERE " . implode(" && ", $tmp);
+    } else {
+      $sql = $sql ." WHERE `id` = '$id'";
+    }
+    return $this->pdo->query($sql)->fetch(PDO::FETCH_ASSOC);
+  }
+
+  function del($id)
+  {
+    $sql = "DELETE FROM $this->table ";
+    if (is_array($id)) {
+      foreach ($id as $k => $v) {
+        $tmp[] = sprintf("`%s` = '%s'", $k, $v);
+      }
+      $sql = $sql . " WHERE " . implode(" && ", $tmp);
+    } else {
+      $sql = $sql ." WHERE `id` = '$id'";
+    }
+    return $this->pdo->exec($sql);
+  }
+
+  function save($ar)
+  {
+    if (isset($ar['id'])) {
+      foreach ($ar as $k => $v) {
+        if($k != 'id')$tmp[] = sprintf("`%s` = '%s'", $k, $v);
+      }
+      $sql ="UPDATE $this->table SET " . implode(" , ", $tmp) . " WHERE `id` = '{$ar['id']}'";
+    } else {
+      $sql ="INSERT INTO $this->table (`".implode("`,`",array_keys($ar)) . "`) VALUES ('" .implode("','",$ar) ."')" ;
+    }
+    // echo $sql;
+    return $this->pdo->exec($sql);
+  }
+}
+
+function to($url)
+{
+  header("Location:$url");
+}
+
+$Home=new DB('home');
+$Ad=new DB('ad');
+$Mvim=new DB('mvim');
+$Image=new DB('image');
+$Total=new DB('total');
+$Bottom=new DB('bottom');
+$News=new DB('news');
+$Admin=new DB('admin');
+$Menu=new DB('menu');
+
+if(!isset($_SESSION['total'])){
+  $total=$Total->find(1);
+  $total['total']++;
+  $Total->save(["id"=>1,"total"=>$total['total']]);
+  $_SESSION['total']=1;
+}
